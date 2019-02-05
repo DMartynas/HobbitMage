@@ -65,35 +65,104 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 	bool pos1 = false;
 	bool pos2 = false;
 	bool pos3 = false;
+	FVector previous = previous.ZeroVector;
+	FVector current = previous.ZeroVector;
 	if (Positions.Num() != 0)
 	{
 
 		//Attempt to see where the center of the circle is
-		for (int i = 0; i < Positions.Num(); i++)
+		for (int i = 1; i < Positions.Num(); i+=2)
 		{
-			if (i == 0) continue;
-			/*UE_LOG(LogTemp, Warning, TEXT("position: %f x; %f y; %f z;"), Positions[i].X, Positions[i].Y, Positions[i].Z);
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("position: %f x; %f y; %f z;"), Positions[i].X, Positions[i].Y, Positions[i].Z));*/
+			/*if (i == 0) continue;
+			UE_LOG(LogTemp, Warning, TEXT("position: %f x; %f y; %f z;"), Positions[i].X, Positions[i].Y, Positions[i].Z);
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("position: %f x; %f y; %f z;"), Positions[i].X, Positions[i].Y, Positions[i].Z));
 
 			//Check movement pattern
 			if (Positions[i - 1].Y - Positions[i].Y > AcceptanceThreshold && Positions[i - 1].Z - Positions[i].Z > AcceptanceThreshold)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Y ir Z mazeja")));
+				if (pos2 == true || pos3 == true)
+				{
+					pos1 = false;
+					continue;
+				}
+				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Y ir Z mazeja")));
 				pos1 = true;
 			}
-
-			if (Positions[i].Y - Positions[i - 1].Y > AcceptanceThreshold && Positions[i - 1].Z - Positions[i].Z < AcceptanceThreshold)
+			if (Positions[i - 1].Y - Positions[i].Y > AcceptanceThreshold && Positions[i - 1].Z - Positions[i].Z < AcceptanceThreshold)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Z nejuda")));
-				pos2 = true;
+				if (pos2 == true || pos3 == true)
+				{
+					pos1 = false;
+					continue;
+				}
+				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Y dideja Z nesikeicia")));
+				if (pos1 == true) pos2 = true;
+			}
+			if (Positions[i - 1].Y - Positions[i].Y < -5 && Positions[i - 1].Z - Positions[i].Z < -10)
+			{
+				pos1 = false;
+				pos2 = false;
+				pos3 = false;
+				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Y: %f;	 Z: %f;"), Positions[i - 1].Y - Positions[i].Y, Positions[i - 1].Z - Positions[i].Z));
 			}
 			if (Positions[i - 1].Y - Positions[i].Y > AcceptanceThreshold && Positions[i].Z - Positions[i - 1].Z > AcceptanceThreshold)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Y mazeja Z dideja")));
-				pos3 = true;
-			}
+				if (pos1 == false || pos2 == false)
+				{
+					pos3 = false;
+					continue;
+				}
+				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Y mazeja Z dideja")));
+				if (pos1 == true && pos2 == true) pos3 = true;
+			}*/
 
-			AverageLocation += Positions[i];
+			if (previous == previous.ZeroVector)
+			{
+				previous = Positions[i] - Positions[i - 1];
+				if (previous.Size() <= 0.1)
+					if (!previous.Normalize())
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Failed to normalize vector"));
+				}
+			}
+			else if (previous != previous.ZeroVector)
+			{
+				current = Positions[i] - Positions[i - 1];
+				if (previous.Size() <= 0.1 || current.Size() <= 0.1)
+				{
+					previous = previous.ZeroVector;
+					continue;
+				}
+				if (!current.Normalize())
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Failed to normalize vector"));
+				}
+				float angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(current, previous)));
+				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Angle: %f"), angle));
+				if (angle > 20.f && angle < -20.f)
+				{
+					if (pos1 == false) 
+					{
+						pos1 = true;
+						GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Pos1")));
+						continue;
+					}
+					if (pos2 == false) 
+					{
+						pos2 = true;
+						GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Pos2")));
+						continue;
+					}
+					if (pos3 == false) 
+					{
+						pos3 = true;
+						GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Pos3")));
+						continue;
+					}
+					previous = current;
+					current = current.ZeroVector;
+				}
+			}
 		}
 		
 		OutAverageLoc = AverageLocation / Positions.Num();

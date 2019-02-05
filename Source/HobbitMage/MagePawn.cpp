@@ -95,7 +95,7 @@ void AMagePawn::RegisterPoint()
 	{
 		FVector Position;
 		float CircleRadius = 0.0F;
-		if (FSpellDetector::DetectTriangle(BufferedPositions, CircleAcceptanceChance, RadiusVariation, Position, CircleRadius))
+		if (FSpellDetector::DetectTriangle(BufferedPositions, 0.75f, RadiusVariation, Position, CircleRadius))
 		{
 			UnreadySpellCast();
 			World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);

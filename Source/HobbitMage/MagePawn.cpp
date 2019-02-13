@@ -10,6 +10,7 @@
 #include "SpellDetector.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "SpellCast.h"
+#include "SpellDetector.h"
 #include "Components/AudioComponent.h"
 #include "HobbitMageGameModeBase.h"
 
@@ -67,6 +68,10 @@ AMagePawn::AMagePawn(const FObjectInitializer &ObjInitializer)
 	CircleChance = 0.0F;
 
 	TriangleAcceptanceChance = 5;
+	AngleCounter = 0;
+	resetTime = true;
+	timeStarted;
+	
 }
 
 // Called when the game starts or when spawned
@@ -83,6 +88,7 @@ void AMagePawn::BeginPlay()
 
 void AMagePawn::RegisterPoint()
 {
+	
 	FVector NewPosition = StaffController->GetComponentLocation();
 	if (BufferedPositions.Num() == MaxBufferedPositions)
 	{
@@ -95,7 +101,7 @@ void AMagePawn::RegisterPoint()
 	{
 		FVector Position;
 		float CircleRadius = 0.0F;
-		if (FSpellDetector::DetectTriangle(BufferedPositions, 0.75f, RadiusVariation, Position, CircleRadius))
+		if (FSpellDetector::DetectTriangle(BufferedPositions, 0.75f, RadiusVariation, Position, CircleRadius, AngleCounter, resetTime, timeStarted))
 		{
 			UnreadySpellCast();
 			World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);

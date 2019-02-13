@@ -4,7 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include <ctime>
+#include <chrono>
 #include "MagePawn.generated.h"
+
+using namespace std::chrono;
 
 UCLASS()
 class HOBBITMAGE_API AMagePawn : public APawn
@@ -61,6 +65,11 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Mage | SpellCast Detection | Triangle")
 	float TriangleAcceptanceChance;
+
+	int AngleCounter;
+	bool resetTime;
+
+	system_clock::time_point timeStarted;
 
 	UPROPERTY(EditAnywhere, Category = "Mage | SpellCast Detection | Circle")
 	float RadiusVariation;

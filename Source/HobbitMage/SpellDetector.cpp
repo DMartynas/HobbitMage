@@ -3,6 +3,7 @@
 #include "SpellDetector.h"
 #include "Engine.h"
 
+
 bool FSpellDetector::DetectCircle(const TArray<FVector> &Positions, float AcceptanceThreshold, float RadiusVariation, FVector &OutAverageLoc, float &CircleRadius)
 {
 	FVector AverageLocation = FVector::ZeroVector;
@@ -57,21 +58,24 @@ bool FSpellDetector::DetectCircle(const TArray<FVector> &Positions, float Accept
 	return IsCircle >= AcceptanceThreshold;
 }
 
-bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float AcceptanceThreshold, float RadiusVariation, FVector &OutAverageLoc, float &CircleRadius)
+bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float AcceptanceThreshold, float RadiusVariation, FVector &OutAverageLoc, float &CircleRadius, int &counter, bool &resetTime, system_clock::time_point timeStarted)
 {
 	FVector AverageLocation = FVector::ZeroVector;
 	float AverageDistance = 0.0F;
 	float IsTriangle = 0.0F;
-	bool pos1 = false;
-	bool pos2 = false;
-	bool pos3 = false;
+	FVector pos1 = FVector::ZeroVector;
+	FVector pos2 = FVector::ZeroVector;
+	float minVectorLenght = 0.6f;
+	float totalTime = 0;
 	FVector previous = previous.ZeroVector;
 	FVector current = previous.ZeroVector;
+	system_clock::time_point timeStoped;
+	bool rt = true;
 	if (Positions.Num() != 0)
 	{
 
-		//Attempt to see where the center of the circle is
-		for (int i = 1; i < Positions.Num(); i+=2)
+
+		for (int i = 1; i < Positions.Num(); i++)
 		{
 			/*if (i == 0) continue;
 			UE_LOG(LogTemp, Warning, TEXT("position: %f x; %f y; %f z;"), Positions[i].X, Positions[i].Y, Positions[i].Z);
@@ -115,70 +119,144 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Y mazeja Z dideja")));
 				if (pos1 == true && pos2 == true) pos3 = true;
 			}*/
-
+			
+			/*timeStoped = high_resolution_clock::now();
+			std::chrono::duration<double, std::milli> dur = timeStoped - timeStarted;
+			if (dur.count() > 10000000.f)
+			{
+				if(counter > 0)
+					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED: %f"), dur.count()));
+				totalTime = 0;
+				counter = 0;
+				timeStarted = high_resolution_clock::now();
+				rt = false;
+			}*/
 			if (previous == previous.ZeroVector)
 			{
 				previous = Positions[i] - Positions[i - 1];
-				if (previous.Size() <= 0.1)
+				if (previous.Size() <= minVectorLenght)
+				{
+					previous = FVector::ZeroVector;
+				}
 					if (!previous.Normalize())
 				{
 					UE_LOG(LogTemp, Warning, TEXT("Failed to normalize vector"));
 				}
+					if (rt) 
+					{
+						timeStarted = system_clock::now();
+						rt = false;
+					}
 			}
 			else if (previous != previous.ZeroVector)
 			{
 				current = Positions[i] - Positions[i - 1];
-				if (previous.Size() <= 0.1 || current.Size() <= 0.1)
+				if (current.Size() <= minVectorLenght)
 				{
 					previous = previous.ZeroVector;
-					continue;
+					current = current.ZeroVector;
 				}
-				if (!current.Normalize())
+				else 
+				{
+					
+					if (!current.Normalize())
 				{
 					UE_LOG(LogTemp, Warning, TEXT("Failed to normalize vector"));
 				}
-				float angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(current, previous)));
-				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Angle: %f"), angle));
-				if (angle > 20.f && angle < -20.f)
-				{
-					if (pos1 == false) 
+				
+					float angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(current, previous)));
+					if (angle > 50.f && angle < 70.f)
 					{
-						pos1 = true;
-						GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Pos1")));
-						continue;
+						if (pos1 == FVector::ZeroVector)
+							pos1 = current;
+						else if (pos2 == FVector::ZeroVector)
+						{
+							pos2 = current;
+							float distance = FVector::Distance(pos1, pos2);//sqrt(pow(pos2.X - pos1.X, 2) + pow(pos2.Y - pos1.Y, 2) + pow(pos2.Z - pos1.Z, 2));
+							if (distance > 1.f)
+							{
+								timeStoped = system_clock::now();;
+								std::chrono::duration<double> dur = timeStoped - timeStarted;
+								if (dur.count() > 0.0)
+								{
+									AverageLocation += pos1;
+									counter++;
+									totalTime += dur.count();
+									GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f | Total time: %.10f | Counter: %d"), distance, totalTime, counter));
+									
+									
+									if (counter > 2 && totalTime < 0.000000800f)
+									{
+										GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED")));
+										totalTime = 0;
+										rt = true;
+										counter = 0;
+									}
+									else if (totalTime > 0.000001f)
+									{
+										GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED")));
+										totalTime = 0;
+										rt = true;
+										counter = 0;
+									}
+									else if (counter > 2 && totalTime < 0.000001f && totalTime > 0.000000800)
+									{
+										counter = 0;
+										totalTime = 0;
+										rt = true;
+										return true;
+									}
+								}
+							}
+						}
 					}
-					if (pos2 == false) 
-					{
-						pos2 = true;
-						GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Pos2")));
-						continue;
-					}
-					if (pos3 == false) 
-					{
-						pos3 = true;
-						GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Pos3")));
-						continue;
-					}
-					previous = current;
-					current = current.ZeroVector;
 				}
 			}
 		}
 		
-		OutAverageLoc = AverageLocation / Positions.Num();
+		OutAverageLoc = AverageLocation / 3;
 
 	}
-	return pos1 && pos2 && pos3;
+	return false;
 }
 
-	bool FSpellDetector::IsThereAnAngle(FVector Position1, FVector Position2)
-	{
-		float x = Position1.X - Position2.X;
-		float y = Position1.Y - Position2.Y;
-		float z = Position1.Z - Position2.Z;
+bool FSpellDetector::GetTriangle(const TArray<FVector> &Positions)
+{
+	FVector previous = previous.ZeroVector;
+	FVector current = previous.ZeroVector;
+	float minVectorLenght = 2.f;
+
+		if (Positions.Num() != 0)
+		{
 
 
-		return false;
+			for (int i = 1; i < Positions.Num(); i++)
+			{
+				if (previous == previous.ZeroVector)
+				{
+					previous = Positions[i] - Positions[i - 1];
+					if (previous.Size() <= minVectorLenght)
+						if (!previous.Normalize())
+						{
+							UE_LOG(LogTemp, Warning, TEXT("Failed to normalize vector"));
+						}
+				}
+				else if (previous != previous.ZeroVector)
+				{
+					current = Positions[i] - Positions[i - 1];
+					if (current.Size() <= minVectorLenght)
+					{
+						previous = previous.ZeroVector;
+						current = current.ZeroVector;
+					}
+					else
+					{
+						
+					}
+				}
+			}
+		}
+		return true;
 	}
 
 	bool FSpellDetector::DetectShallNotPass(const TArray<FVector>& Positions, FVector HeadLocation, float StaffHalfHeight)

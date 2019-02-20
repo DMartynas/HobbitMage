@@ -15,7 +15,7 @@ AOrcCharacter::AOrcCharacter(const FObjectInitializer &ObjInitializer)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
+	orcHealth = 100;
 	GetCapsuleComponent()->SetNotifyRigidBodyCollision(true);
 
 }
@@ -72,5 +72,14 @@ void AOrcCharacter::KillOrc()
 		GameMode->AddScore(10);
 	}
 	OnOrcKilled();
+}
+void AOrcCharacter::DecreaseHealth()
+{
+	if (orcHealth <= 0) KillOrc();
+	else 
+	{
+		orcHealth -= meeleDamage;
+		if (orcHealth <= 0) KillOrc();
+	}
 }
 

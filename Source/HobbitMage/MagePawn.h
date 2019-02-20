@@ -24,10 +24,10 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Mage")
 	class USceneComponent* RootScene;
 
-	UPROPERTY(VisibleAnywhere, Category = "Mage")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mage")
 	class UMotionControllerComponent* StaffController;
 
-	UPROPERTY(VisibleAnywhere, Category = "Mage")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mage")
 	class UStaticMeshComponent* StaffMesh;
 
 	UPROPERTY(VisibleAnywhere, Category = "Mage")
@@ -91,6 +91,8 @@ protected:
 	bool bReadyToCast;
 
 	bool bCastingShallNotPass;
+
+	UPROPERTY(BlueprintReadOnly, Category="Mage")
 	FVector LastVelocity;
 
 	FTimerHandle TimerHandle_RegisterPointTimer;

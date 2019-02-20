@@ -65,11 +65,14 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 	float IsTriangle = 0.0F;
 	FVector pos1 = FVector::ZeroVector;
 	FVector pos2 = FVector::ZeroVector;
+	FVector firstPoint = FVector::ZeroVector;
+	FVector endPoint = FVector::ZeroVector;
 	float minVectorLenght = 0.6f;
 	float totalTime = 0;
 	FVector previous = previous.ZeroVector;
 	FVector current = previous.ZeroVector;
 	system_clock::time_point timeStoped;
+	int avgLocCounter = 0;
 	bool rt = true;
 	if (Positions.Num() != 0)
 	{
@@ -138,10 +141,11 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 				{
 					previous = FVector::ZeroVector;
 				}
-					if (!previous.Normalize())
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Failed to normalize vector"));
-				}
+				AverageLocation += Positions[i];
+				avgLocCounter++;
+					if (counter == 0 && previous != previous.ZeroVector) { firstPoint = previous; }
+					if (counter == 2 && previous != previous.ZeroVector) { endPoint = previous; }
+					previous.Normalize();
 					if (rt) 
 					{
 						timeStarted = system_clock::now();
@@ -158,11 +162,8 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 				}
 				else 
 				{
-					
-					if (!current.Normalize())
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Failed to normalize vector"));
-				}
+					if (counter == 2 && current != current.ZeroVector) { endPoint = current; }
+					current.Normalize();
 				
 					float angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(current, previous)));
 					if (angle > 50.f && angle < 70.f)
@@ -173,38 +174,58 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 						{
 							pos2 = current;
 							float distance = FVector::Distance(pos1, pos2);//sqrt(pow(pos2.X - pos1.X, 2) + pow(pos2.Y - pos1.Y, 2) + pow(pos2.Z - pos1.Z, 2));
-							if (distance > 1.f)
+							if (distance > 1.1f)
 							{
 								timeStoped = system_clock::now();;
 								std::chrono::duration<double> dur = timeStoped - timeStarted;
 								if (dur.count() > 0.0)
 								{
-									AverageLocation += pos1;
 									counter++;
+									
 									totalTime += dur.count();
-									GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f | Total time: %.10f | Counter: %d"), distance, totalTime, counter));
+									//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f | Total time: %.10f | Counter: %d"), distance, totalTime, counter));
 									
 									
-									if (counter > 2 && totalTime < 0.000000800f)
+									if (counter > 2 && totalTime < 0.000000008f)
 									{
-										GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED")));
+										float distanceToFirstPoint = FVector::Distance(firstPoint, endPoint);
+										//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f "), distanceToFirstPoint));
+										//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED")));
 										totalTime = 0;
 										rt = true;
 										counter = 0;
+										AverageLocation = AverageLocation.ZeroVector;
 									}
-									else if (totalTime > 0.000001f)
+									else if (totalTime > 0.00001f)
 									{
-										GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED")));
+										float distanceToFirstPoint = FVector::Distance(firstPoint, endPoint);
+										//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f "), distanceToFirstPoint));
+										//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED")));
 										totalTime = 0;
 										rt = true;
 										counter = 0;
+										AverageLocation = AverageLocation.ZeroVector;
 									}
-									else if (counter > 2 && totalTime < 0.000001f && totalTime > 0.000000800)
+									else if (counter > 2 )
 									{
-										counter = 0;
-										totalTime = 0;
-										rt = true;
-										return true;
+										float distanceToFirstPoint = FVector::Distance(firstPoint, endPoint);
+										//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f "), distanceToFirstPoint));
+										if (distanceToFirstPoint < 9 && distanceToFirstPoint > 1.5f)
+										{
+											counter = 0;
+											totalTime = 0;
+											rt = true;
+											AverageLocation.X += 90;
+											OutAverageLoc = AverageLocation / avgLocCounter;
+											return true;
+										}
+										else
+										{
+											//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED")));
+											totalTime = 0;
+											rt = true;
+											counter = 0;
+										}
 									}
 								}
 							}
@@ -214,50 +235,12 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 			}
 		}
 		
-		OutAverageLoc = AverageLocation / 3;
+		
 
 	}
 	return false;
 }
 
-bool FSpellDetector::GetTriangle(const TArray<FVector> &Positions)
-{
-	FVector previous = previous.ZeroVector;
-	FVector current = previous.ZeroVector;
-	float minVectorLenght = 2.f;
-
-		if (Positions.Num() != 0)
-		{
-
-
-			for (int i = 1; i < Positions.Num(); i++)
-			{
-				if (previous == previous.ZeroVector)
-				{
-					previous = Positions[i] - Positions[i - 1];
-					if (previous.Size() <= minVectorLenght)
-						if (!previous.Normalize())
-						{
-							UE_LOG(LogTemp, Warning, TEXT("Failed to normalize vector"));
-						}
-				}
-				else if (previous != previous.ZeroVector)
-				{
-					current = Positions[i] - Positions[i - 1];
-					if (current.Size() <= minVectorLenght)
-					{
-						previous = previous.ZeroVector;
-						current = current.ZeroVector;
-					}
-					else
-					{
-						
-					}
-				}
-			}
-		}
-		return true;
-	}
 
 	bool FSpellDetector::DetectShallNotPass(const TArray<FVector>& Positions, FVector HeadLocation, float StaffHalfHeight)
 {

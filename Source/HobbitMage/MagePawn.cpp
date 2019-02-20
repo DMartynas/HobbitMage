@@ -12,6 +12,7 @@
 #include "SpellCast.h"
 #include "SpellDetector.h"
 #include "Components/AudioComponent.h"
+#include "Engine.h"
 #include "HobbitMageGameModeBase.h"
 
 // Sets default values
@@ -101,8 +102,25 @@ void AMagePawn::RegisterPoint()
 	{
 		FVector Position;
 		float CircleRadius = 0.0F;
-		if (FSpellDetector::DetectTriangle(BufferedPositions, 0.75f, RadiusVariation, Position, CircleRadius, AngleCounter, resetTime, timeStarted))
+		if (FSpellDetector::DetectCircle(BufferedPositions, CircleAcceptanceChance, RadiusVariation, Position, CircleRadius))
 		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("--------------------CIRCLE")));
+			resetTime = true;
+			AngleCounter = 0;
+			UnreadySpellCast();
+			World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
+			FTransform SpawnTransform;
+			SpawnTransform.SetLocation(Position);
+			SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
+			ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
+			if (Cast)
+			{
+				Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
+			}
+		}
+		else if (FSpellDetector::DetectTriangle(BufferedPositions, 0.75f, RadiusVariation, Position, CircleRadius, AngleCounter, resetTime, timeStarted))
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("--------------------Triangle")));
 			UnreadySpellCast();
 			World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
 			FTransform SpawnTransform;

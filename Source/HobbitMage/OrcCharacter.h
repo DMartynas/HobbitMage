@@ -13,12 +13,19 @@ class HOBBITMAGE_API AOrcCharacter : public ACharacter
 
 public:
 	// Sets default values for this character's properties
+	
 	AOrcCharacter(const FObjectInitializer &ObjInitializer);
 
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Orc")
 	bool bWalkToTarget;
+
+	UPROPERTY(EditAnywhere, Category = "Orc")
+	int orcHealth;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Orc")
+	int meeleDamage;
 
 protected:
 	// Called when the game starts or when spawned
@@ -36,6 +43,12 @@ public:
 
 	void MoveToPlayer();
 
+	UFUNCTION(BlueprintCallable, Category = "Orc")
 	void KillOrc();
+
+	UFUNCTION(BlueprintCallable, Category = "Orc")
+	void DecreaseHealth();
+
+
 
 };

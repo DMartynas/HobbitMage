@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "SpellDetector.h"
+#include "MagePawn.h"
 #include "Engine.h"
 
 
@@ -9,7 +10,8 @@ bool FSpellDetector::DetectCircle(const TArray<FVector> &Positions, float Accept
 	FVector AverageLocation = FVector::ZeroVector;
 	float AverageDistance = 0.0F;
 	float IsCircle = 0.0F;
-
+	bool rt = true;
+	system_clock::time_point timeStarted;
 	if (Positions.Num() != 0)
 	{
 
@@ -20,7 +22,11 @@ bool FSpellDetector::DetectCircle(const TArray<FVector> &Positions, float Accept
 		}
 
 		AverageLocation /= Positions.Num();
-
+		if (rt)
+		{
+			timeStarted = system_clock::now();
+			rt = false;
+		}
 		// Attempt to get the point distances to the circle
 		TArray<float> Distances;
 		for (int i = 0; i < Positions.Num(); i++)
@@ -48,31 +54,35 @@ bool FSpellDetector::DetectCircle(const TArray<FVector> &Positions, float Accept
 				}
 			}
 			IsCircle = (float)Counter / (float)Distances.Num();
+			//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Counter: %f"), IsCircle));
+			
 		}
 	}
 
-	//UE_LOG(LogTemp, Warning, TEXT("Avg Loc: %s, Avg Dist: %f, Is circle: %f"), *AverageLocation.ToString(), AverageDistance, IsCircle);
+
 
 	OutAverageLoc = AverageLocation;
-
+	system_clock::time_point timeStoped = system_clock::now();
+	std::chrono::duration<double> dur = timeStoped - timeStarted;
+	//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Time: %.9f"), dur.count()));
 	return IsCircle >= AcceptanceThreshold;
 }
 
-bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float AcceptanceThreshold, float RadiusVariation, FVector &OutAverageLoc, float &CircleRadius, int &counter, bool &resetTime, system_clock::time_point timeStarted)
+bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, FVector &OuttriangleCenter, int &counter, bool &resetTime, system_clock::time_point timeStarted, AMagePawn* Mage)
 {
-	FVector AverageLocation = FVector::ZeroVector;
-	float AverageDistance = 0.0F;
-	float IsTriangle = 0.0F;
 	FVector pos1 = FVector::ZeroVector;
 	FVector pos2 = FVector::ZeroVector;
+	FVector nnpos1 = FVector::ZeroVector;
+	FVector nnpos2 = FVector::ZeroVector;
 	FVector firstPoint = FVector::ZeroVector;
 	FVector endPoint = FVector::ZeroVector;
-	float minVectorLenght = 0.6f;
+	float minVectorLenght = 0.9f;
 	float totalTime = 0;
 	FVector previous = previous.ZeroVector;
 	FVector current = previous.ZeroVector;
+	FVector nnprevious = previous.ZeroVector;
+	FVector nncurrent = previous.ZeroVector;
 	system_clock::time_point timeStoped;
-	int avgLocCounter = 0;
 	bool rt = true;
 	if (Positions.Num() != 0)
 	{
@@ -80,60 +90,6 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 
 		for (int i = 1; i < Positions.Num(); i++)
 		{
-			/*if (i == 0) continue;
-			UE_LOG(LogTemp, Warning, TEXT("position: %f x; %f y; %f z;"), Positions[i].X, Positions[i].Y, Positions[i].Z);
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("position: %f x; %f y; %f z;"), Positions[i].X, Positions[i].Y, Positions[i].Z));
-
-			//Check movement pattern
-			if (Positions[i - 1].Y - Positions[i].Y > AcceptanceThreshold && Positions[i - 1].Z - Positions[i].Z > AcceptanceThreshold)
-			{
-				if (pos2 == true || pos3 == true)
-				{
-					pos1 = false;
-					continue;
-				}
-				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Y ir Z mazeja")));
-				pos1 = true;
-			}
-			if (Positions[i - 1].Y - Positions[i].Y > AcceptanceThreshold && Positions[i - 1].Z - Positions[i].Z < AcceptanceThreshold)
-			{
-				if (pos2 == true || pos3 == true)
-				{
-					pos1 = false;
-					continue;
-				}
-				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Y dideja Z nesikeicia")));
-				if (pos1 == true) pos2 = true;
-			}
-			if (Positions[i - 1].Y - Positions[i].Y < -5 && Positions[i - 1].Z - Positions[i].Z < -10)
-			{
-				pos1 = false;
-				pos2 = false;
-				pos3 = false;
-				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Y: %f;	 Z: %f;"), Positions[i - 1].Y - Positions[i].Y, Positions[i - 1].Z - Positions[i].Z));
-			}
-			if (Positions[i - 1].Y - Positions[i].Y > AcceptanceThreshold && Positions[i].Z - Positions[i - 1].Z > AcceptanceThreshold)
-			{
-				if (pos1 == false || pos2 == false)
-				{
-					pos3 = false;
-					continue;
-				}
-				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("Y mazeja Z dideja")));
-				if (pos1 == true && pos2 == true) pos3 = true;
-			}*/
-			
-			/*timeStoped = high_resolution_clock::now();
-			std::chrono::duration<double, std::milli> dur = timeStoped - timeStarted;
-			if (dur.count() > 10000000.f)
-			{
-				if(counter > 0)
-					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED: %f"), dur.count()));
-				totalTime = 0;
-				counter = 0;
-				timeStarted = high_resolution_clock::now();
-				rt = false;
-			}*/
 			if (previous == previous.ZeroVector)
 			{
 				previous = Positions[i] - Positions[i - 1];
@@ -141,10 +97,9 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 				{
 					previous = FVector::ZeroVector;
 				}
-				AverageLocation += Positions[i];
-				avgLocCounter++;
 					if (counter == 0 && previous != previous.ZeroVector) { firstPoint = previous; }
 					if (counter == 2 && previous != previous.ZeroVector) { endPoint = previous; }
+					nnprevious = previous;
 					previous.Normalize();
 					if (rt) 
 					{
@@ -163,69 +118,55 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 				else 
 				{
 					if (counter == 2 && current != current.ZeroVector) { endPoint = current; }
+					nncurrent = current;
 					current.Normalize();
 				
 					float angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(current, previous)));
-					if (angle > 50.f && angle < 70.f)
+					//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Angle: %f"), angle));
+					if (angle > 25.f && angle < 70.f)
 					{
 						if (pos1 == FVector::ZeroVector)
+						{
 							pos1 = current;
+							nnpos1 = nncurrent;
+						}
 						else if (pos2 == FVector::ZeroVector)
 						{
 							pos2 = current;
-							float distance = FVector::Distance(pos1, pos2);//sqrt(pow(pos2.X - pos1.X, 2) + pow(pos2.Y - pos1.Y, 2) + pow(pos2.Z - pos1.Z, 2));
+							nnpos2 = nncurrent;
+							float distance = FVector::Distance(nnpos1, nnpos2);
 							if (distance > 1.1f)
 							{
-								timeStoped = system_clock::now();;
+								timeStoped = system_clock::now();
 								std::chrono::duration<double> dur = timeStoped - timeStarted;
 								if (dur.count() > 0.0)
 								{
 									counter++;
 									
 									totalTime += dur.count();
-									//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f | Total time: %.10f | Counter: %d"), distance, totalTime, counter));
-									
 									
 									if (counter > 2 && totalTime < 0.000000008f)
-									{
-										float distanceToFirstPoint = FVector::Distance(firstPoint, endPoint);
-										//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f "), distanceToFirstPoint));
-										//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED")));
-										totalTime = 0;
-										rt = true;
-										counter = 0;
-										AverageLocation = AverageLocation.ZeroVector;
-									}
+										restart(counter, resetTime, totalTime);
+
 									else if (totalTime > 0.00001f)
-									{
-										float distanceToFirstPoint = FVector::Distance(firstPoint, endPoint);
-										//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f "), distanceToFirstPoint));
-										//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED")));
-										totalTime = 0;
-										rt = true;
-										counter = 0;
-										AverageLocation = AverageLocation.ZeroVector;
-									}
+										restart(counter, resetTime, totalTime);
+									
 									else if (counter > 2 )
 									{
 										float distanceToFirstPoint = FVector::Distance(firstPoint, endPoint);
-										//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f "), distanceToFirstPoint));
-										if (distanceToFirstPoint < 9 && distanceToFirstPoint > 1.5f)
+										float totalDistance = FVector::Distance(firstPoint, nnpos1) + FVector::Distance(nnpos1, endPoint) + FVector::Distance(endPoint, firstPoint);
+										
+										if (distanceToFirstPoint < 9 && distanceToFirstPoint > 1.5f && totalDistance > 19.9f)
 										{
-											counter = 0;
-											totalTime = 0;
-											rt = true;
-											AverageLocation.X += 90;
-											OutAverageLoc = AverageLocation / avgLocCounter;
+											restart(counter, resetTime, totalTime);
+
+											OuttriangleCenter = Mage->PlayerCamera->GetComponentLocation() + Mage->PlayerCamera->GetForwardVector() * 150.0F;
+											
+											GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("nnpos1: %s, nnpos2: %s"), *(nnpos1.ToString()), *(nnpos2.ToString())));
 											return true;
 										}
-										else
-										{
-											//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("RESTARTED")));
-											totalTime = 0;
-											rt = true;
-											counter = 0;
-										}
+										else restart(counter, resetTime, totalTime);
+										
 									}
 								}
 							}
@@ -258,3 +199,10 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, float Acce
 
 	return StaffHeight >= HeightThreshold;
 }
+
+	void FSpellDetector::restart(int & counter, bool & resetTime, float & totalTime)
+	{
+		counter = 0;
+		resetTime = true;
+		totalTime = 0;
+	}

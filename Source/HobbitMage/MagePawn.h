@@ -80,6 +80,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Mage")
 	float CircleChance;
 
+	bool spellCasted;
+
 protected:
 
 	TArray<FVector> BufferedPositions;

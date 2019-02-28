@@ -62,5 +62,6 @@ void AFireSpellCast::CastSpell(AMagePawn* Mage, const FHitResult &HitResult)
 			}
 		}
 	}
+	Mage->spellCasted = false;
 	Destroy();
 }

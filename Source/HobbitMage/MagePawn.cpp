@@ -60,7 +60,7 @@ AMagePawn::AMagePawn(const FObjectInitializer &ObjInitializer)
 	MaxBufferedPositions = 33;
 	PositionRegisteringRate = 1.0F / 15.0F;
 
-	CircleAcceptanceChance = 0.75F;
+	CircleAcceptanceChance = 0.82F;
 	RadiusVariation = 0.2F;
 
 	StaffVelocityBufferSize = 8;
@@ -71,6 +71,9 @@ AMagePawn::AMagePawn(const FObjectInitializer &ObjInitializer)
 	TriangleAcceptanceChance = 5;
 	AngleCounter = 0;
 	resetTime = true;
+
+	spellCasted = false;
+
 	timeStarted;
 	
 }
@@ -100,49 +103,57 @@ void AMagePawn::RegisterPoint()
 	UWorld* World = GetWorld();
 	if (World)
 	{
-		FVector Position;
+		FVector CirclePosition;
+		FVector TrianglePosition;
 		float CircleRadius = 0.0F;
-		if (FSpellDetector::DetectCircle(BufferedPositions, CircleAcceptanceChance, RadiusVariation, Position, CircleRadius))
+		if (!spellCasted)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("--------------------CIRCLE")));
-			resetTime = true;
-			AngleCounter = 0;
-			UnreadySpellCast();
-			World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
-			FTransform SpawnTransform;
-			SpawnTransform.SetLocation(Position);
-			SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
-			ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
-			if (Cast)
+			if (FSpellDetector::DetectCircle(BufferedPositions, CircleAcceptanceChance, RadiusVariation, CirclePosition, CircleRadius))
 			{
-				Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
-			}
-		}
-		else if (FSpellDetector::DetectTriangle(BufferedPositions, 0.75f, RadiusVariation, Position, CircleRadius, AngleCounter, resetTime, timeStarted))
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("--------------------Triangle")));
-			UnreadySpellCast();
-			World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
-			FTransform SpawnTransform;
-			SpawnTransform.SetLocation(Position);
-			SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
-			ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
-			if (Cast)
-			{
-				Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
-			}
-		}
-		else
-		{
-			AHobbitMageGameModeBase* GameMode = Cast<AHobbitMageGameModeBase>(GetWorld()->GetAuthGameMode());
-			if (GameMode)
-			{
-				if (FSpellDetector::DetectShallNotPass(BufferedPositions, PlayerCamera->GetComponentLocation(), 86.0F) && !GameMode->bShallNotPassUsed)
+				spellCasted = true;
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("--------------------CIRCLE")));
+				resetTime = true;
+				AngleCounter = 0;
+				UnreadySpellCast();
+				World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
+				FTransform SpawnTransform;
+				SpawnTransform.SetLocation(CirclePosition);
+				SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
+				ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
+				if (Cast)
 				{
-					UnreadySpellCast();
-					ShallNotPassParticle->Activate();
-					bCastingShallNotPass = true;
-					YouShallNot->Play();
+					Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
+				}
+			}
+			else if (FSpellDetector::DetectTriangle(BufferedPositions, TrianglePosition, AngleCounter, resetTime, timeStarted, this))
+			{
+				spellCasted = true;
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("--------------------Triangle")));
+				UnreadySpellCast();
+				World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
+				FTransform SpawnTransform;
+				//TrianglePosition -= AMagePawn::PlayerCamera->GetForwardVector();
+
+				SpawnTransform.SetLocation(TrianglePosition);
+				SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
+				ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
+				if (Cast)
+				{
+					Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
+				}
+			}
+			else
+			{
+				AHobbitMageGameModeBase* GameMode = Cast<AHobbitMageGameModeBase>(GetWorld()->GetAuthGameMode());
+				if (GameMode)
+				{
+					if (FSpellDetector::DetectShallNotPass(BufferedPositions, PlayerCamera->GetComponentLocation(), 86.0F) && !GameMode->bShallNotPassUsed)
+					{
+						UnreadySpellCast();
+						ShallNotPassParticle->Activate();
+						bCastingShallNotPass = true;
+						YouShallNot->Play();
+					}
 				}
 			}
 		}

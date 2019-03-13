@@ -23,6 +23,9 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Spell Cast")
 	class UParticleSystemComponent* SpellCastParticles;
 
+	UPROPERTY(VisibleAnywhere, Category = "Spell Cast")
+	class UActorComponent* SpawnActor;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

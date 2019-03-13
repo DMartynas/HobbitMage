@@ -54,6 +54,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Mage | SpellCasts")
 	TSubclassOf<class ASpellCast> CircleSpellCastClass;
 
+	UPROPERTY(EditAnywhere, Category = "Mage | SpellCasts")
+	TSubclassOf<class AMagicBeing> MagicBeingSpellCastClass;
+
 	UPROPERTY(EditAnywhere, Category = "Mage | SpellCast Detection | General")
 	int MaxBufferedPositions;
 

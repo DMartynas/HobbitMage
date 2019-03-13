@@ -16,6 +16,8 @@ ASpellCast::ASpellCast(const FObjectInitializer &ObjInitializer)
 	SpellCastParticles = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("SpellCastParticles"));
 	SpellCastParticles->SetupAttachment(OverlapSphere);
 
+	SpawnActor = CreateDefaultSubobject<UActorComponent>(TEXT("SpawnActor"));
+
 }
 
 // Called when the game starts or when spawned

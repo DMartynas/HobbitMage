@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MagePawn.h"
+#include "MagicBeing.h"
 #include "Components/SceneComponent.h"
 #include "HeadMountedDisplay/Public/MotionControllerComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -125,7 +126,39 @@ void AMagePawn::RegisterPoint()
 					Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
 				}
 			}
+			else if (FSpellDetector::DetectLightning(BufferedPositions, TrianglePosition, AngleCounter, resetTime, timeStarted, this))
+			{
+				spellCasted = true;
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Blue, FString::Printf(TEXT("--------------------LIGHTNING")));
+				UnreadySpellCast();
+				World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
+				FTransform SpawnTransform;
+
+				SpawnTransform.SetLocation(CirclePosition);
+				SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
+				ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
+				if (Cast)
+				{
+					Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
+				}
+			}
 			else if (FSpellDetector::DetectTriangle(BufferedPositions, TrianglePosition, AngleCounter, resetTime, timeStarted, this))
+			{
+				spellCasted = true;
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("--------------------Triangle")));
+				UnreadySpellCast();
+				World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
+				FTransform SpawnTransform;
+
+				SpawnTransform.SetLocation(CirclePosition);
+				SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
+				ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
+				if (Cast)
+				{
+					Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
+				}
+			}
+			/*else if (FSpellDetector::DetectTriangle(BufferedPositions, TrianglePosition, AngleCounter, resetTime, timeStarted, this))
 			{
 				spellCasted = true;
 				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("--------------------Triangle")));
@@ -136,12 +169,16 @@ void AMagePawn::RegisterPoint()
 
 				SpawnTransform.SetLocation(TrianglePosition);
 				SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
-				ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
+				AMagicBeing* Cast = World->SpawnActor<AMagicBeing>(MagicBeingSpellCastClass, SpawnTransform);
+
 				if (Cast)
 				{
-					Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
+					
+					//Cast->
+					//Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
 				}
-			}
+			}*/
+			
 			else
 			{
 				AHobbitMageGameModeBase* GameMode = Cast<AHobbitMageGameModeBase>(GetWorld()->GetAuthGameMode());

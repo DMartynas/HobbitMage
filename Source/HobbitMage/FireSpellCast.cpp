@@ -37,20 +37,31 @@ void AFireSpellCast::CastSpell(AMagePawn* Mage, const FHitResult &HitResult)
 				UGameplayStatics::PlaySoundAtLocation(GetWorld(), CastSound, GetActorLocation());
 				if (Missile)
 				{
-					float MinProduct = 9999.0F;
+					float MaxProduct = 0.f;
+					float distanceToTarget = 9999999999999999.f;
 					AOrcCharacter* BestFitOrc = nullptr;
 					for (TActorIterator<AOrcCharacter> Itr(World); Itr; ++Itr)
 					{
 						AOrcCharacter* Orc = *Itr;
-						FVector DirToOrc = Orc->GetActorLocation() - GetActorLocation();
-						DirToOrc.Normalize();
-						float DotProduct = FVector::DotProduct(DirToOrc, StaffVelDir);
-						if (DotProduct > 0.707F && DotProduct < MinProduct)
+						
+						
+						if (FVector::Distance(Orc->GetActorLocation(), GetActorLocation()) < distanceToTarget)
 						{
-							MinProduct = DotProduct;
-							BestFitOrc = Orc;
-							MagicMissileDirection = StaffVelDir + DirToOrc;
+							distanceToTarget = FVector::Distance(Orc->GetActorLocation(), GetActorLocation());
+							FVector DirToOrc = Orc->GetActorLocation() - GetActorLocation();
+							DirToOrc.Normalize();
+							float DotProduct = FVector::DotProduct(DirToOrc, StaffVelDir);
+							if (DotProduct > 0.5F && DotProduct > MaxProduct)
+							{
+								MaxProduct = DotProduct;
+								BestFitOrc = Orc;
+								MagicMissileDirection = StaffVelDir + DirToOrc;
+								
+
+							}
+							
 						}
+						
 					}
 					MagicMissileDirection.Normalize();
 					Missile->MovementComponent->Velocity = MagicMissileDirection * StaffVelocity.Size() * MagicMissileSpeedMultiplier;

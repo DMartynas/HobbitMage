@@ -16,9 +16,11 @@ static struct  HOBBITMAGE_API FSpellDetector
 	
 
 public:
-	static bool DetectCircle(const TArray<FVector> &Positions, float AcceptanceThreshold, float RadiusVariation, FVector &OutAverageLoc, float &CircleRadius);
+	static bool DetectCircle(const TArray<FVector> &Positions, float AcceptanceThreshold, float RadiusVariation, FVector &OutAverageLoc, float &CircleRadius, AMagePawn* Mage);
 	static bool DetectTriangle(const TArray<FVector> &Positions, FVector &triangleCenter, int &counter, bool &resetTime, system_clock::time_point timeStarted, AMagePawn* Mage);
 	static bool DetectLightning(const TArray<FVector> &Positions, FVector &triangleCenter, int &counter, bool &resetTime, system_clock::time_point timeStarted, AMagePawn* Mage);
+	static void DetectSlash(const TArray<FVector> &Positions, AMagePawn* Mage, FVector &OutSlashVector1, FVector &OutSlashVector2);
+	static void DetectStab(const TArray<FVector> &Positions, AMagePawn* Mage, FVector &OutSlashVector1, FVector &OutSlashVector2);
 	static bool DetectShallNotPass(const TArray<FVector> &Positions, FVector HeadLocation, float StaffHalfHeight);
 	static void restart(int &counter, bool &resetTime, float &totalTime);
 };

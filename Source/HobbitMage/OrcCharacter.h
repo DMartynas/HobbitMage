@@ -34,6 +34,13 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Orc")
 	void OnOrcKilled();
 
+protected:
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Attack)
+	bool Attack = false;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Attack)
+	bool Walk = false;
+	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "OrcCharacter.h"
+#include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
 #include "AIController.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
@@ -9,6 +10,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "HobbitMageGameModeBase.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine.h"
 
 // Sets default values
 AOrcCharacter::AOrcCharacter(const FObjectInitializer &ObjInitializer)
@@ -31,6 +34,40 @@ void AOrcCharacter::BeginPlay()
 void AOrcCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	AAIController* Controller = Cast<AAIController>(GetController());
+	if (Controller)
+	{
+		if (PC)
+		{
+			AMagePawn* Pawn = Cast<AMagePawn>(PC->GetPawn());
+			if (Pawn)
+			{
+				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) > 300.f && Attack == false)
+				{
+					Controller->StopMovement();
+					Walk = true;
+					Controller->SetFocus(Pawn);
+					//Controller->MoveToLocation(Pawn->PlayerCamera->GetComponentLocation(), 100.0F);
+					Controller->MoveToActor(Pawn, 200);
+				}
+				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) < 300.f)
+				{
+					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Stopped")));
+					Controller->StopMovement();
+				}
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f"), FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation())));
+				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) < 300.f)
+				{
+					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Boool")));
+					Controller->StopMovement();
+					Walk = false;
+					Attack = true;
+				}
+				else if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) > 400.f) Attack = false;
+			}
+		}
+	}
 
 }
 
@@ -43,7 +80,7 @@ void AOrcCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 void AOrcCharacter::MoveToPlayer()
 {
-	if (bWalkToTarget)
+	/*if (bWalkToTarget)
 	{
 		AAIController* Controller = Cast<AAIController>(GetController());
 		if (Controller)
@@ -54,12 +91,11 @@ void AOrcCharacter::MoveToPlayer()
 				AMagePawn* Pawn = Cast<AMagePawn>(PC->GetPawn());
 				if (Pawn)
 				{
-					Controller->SetFocus(Pawn);
-					Controller->MoveToLocation(Pawn->PlayerCamera->GetComponentLocation(), 50.0F);
+					
 				}
 			}
 		}
-	}
+	}*/
 }
 
 void AOrcCharacter::KillOrc()

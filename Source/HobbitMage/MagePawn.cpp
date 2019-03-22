@@ -76,6 +76,9 @@ AMagePawn::AMagePawn(const FObjectInitializer &ObjInitializer)
 	spellCasted = false;
 
 	timeStarted;
+
+	OutslashVector1 = FVector::ZeroVector;
+	OutslashVector2 = FVector::ZeroVector;
 	
 }
 
@@ -109,7 +112,8 @@ void AMagePawn::RegisterPoint()
 		float CircleRadius = 0.0F;
 		if (!spellCasted)
 		{
-			if (FSpellDetector::DetectCircle(BufferedPositions, CircleAcceptanceChance, RadiusVariation, CirclePosition, CircleRadius))
+			FSpellDetector::DetectSlash(BufferedPositions, this, OutslashVector1, OutslashVector2);
+			if (FSpellDetector::DetectCircle(BufferedPositions, CircleAcceptanceChance, RadiusVariation, CirclePosition, CircleRadius, this))
 			{
 				spellCasted = true;
 				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("--------------------CIRCLE")));

@@ -97,6 +97,9 @@ protected:
 
 	bool bCastingShallNotPass;
 
+	FVector OutslashVector1;
+	FVector OutslashVector2;
+
 	UPROPERTY(BlueprintReadOnly, Category="Mage")
 	FVector LastVelocity;
 

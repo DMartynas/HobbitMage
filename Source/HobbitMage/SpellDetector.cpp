@@ -5,8 +5,9 @@
 #include "Engine.h"
 
 
-bool FSpellDetector::DetectCircle(const TArray<FVector> &Positions, float AcceptanceThreshold, float RadiusVariation, FVector &OutAverageLoc, float &CircleRadius)
+bool FSpellDetector::DetectCircle(const TArray<FVector> &Positions, float AcceptanceThreshold, float RadiusVariation, FVector &OutAverageLoc, float &CircleRadius, AMagePawn* Mage)
 {
+	
 	FVector AverageLocation = FVector::ZeroVector;
 	float AverageDistance = 0.0F;
 	float IsCircle = 0.0F;
@@ -19,6 +20,7 @@ bool FSpellDetector::DetectCircle(const TArray<FVector> &Positions, float Accept
 		for (int i = 0; i < Positions.Num(); i++)
 		{
 			AverageLocation += Positions[i];
+			
 		}
 
 		AverageLocation /= Positions.Num();
@@ -61,14 +63,14 @@ bool FSpellDetector::DetectCircle(const TArray<FVector> &Positions, float Accept
 
 
 
-	OutAverageLoc = AverageLocation;
+	OutAverageLoc = AverageLocation + Mage->PlayerCamera->GetForwardVector() * 10.0F;;
 	system_clock::time_point timeStoped = system_clock::now();
 	std::chrono::duration<double> dur = timeStoped - timeStarted;
 	//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Time: %.9f"), dur.count()));
 	return IsCircle >= AcceptanceThreshold;
 }
 
-bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, FVector &OuttriangleCenter, int &counter, bool &resetTime, system_clock::time_point timeStarted, AMagePawn* Mage)
+bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, FVector &OutTriangleCenter, int &counter, bool &resetTime, system_clock::time_point timeStarted, AMagePawn* Mage)
 {
 	FVector pos1 = FVector::ZeroVector;
 	FVector pos2 = FVector::ZeroVector;
@@ -119,11 +121,12 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, FVector &O
 				{
 					if (counter == 2 && current != current.ZeroVector) { endPoint = current; }
 					nncurrent = current;
+					//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("X: %f | Y: %f"), abs(nncurrent.X - nnprevious.X), abs(nncurrent.Y - nnprevious.Y)));
 					current.Normalize();
 				
 					float angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(current, previous)));
 					//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Angle: %f"), angle));
-					if (angle > 25.f && angle < 70.f)
+					if (angle > 20.f && angle < 90.f)
 					{
 						if (pos1 == FVector::ZeroVector)
 						{
@@ -146,10 +149,16 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, FVector &O
 									totalTime += dur.count();
 									
 									if (counter > 2 && totalTime < 0.000000008f)
+									{
 										restart(counter, resetTime, totalTime);
+										GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Laiko permazai: %f"), totalTime));
+									}
 
 									else if (totalTime > 0.00001f)
+									{
 										restart(counter, resetTime, totalTime);
+										GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Laiko perdaug: %f"), totalTime));
+									}
 									
 									else if (counter > 2 )
 									{
@@ -160,15 +169,20 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, FVector &O
 										{
 											restart(counter, resetTime, totalTime);
 
-											OuttriangleCenter = Mage->PlayerCamera->GetComponentLocation() + Mage->PlayerCamera->GetForwardVector() * 150.0F;
+											OutTriangleCenter = Mage->PlayerCamera->GetComponentLocation() + Mage->PlayerCamera->GetForwardVector() * 100.0F;
 											
 											GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("distanceToFirstPoint: %f, totalDistance: %f"), distanceToFirstPoint, totalDistance));
 											return true;
 										}
-										else restart(counter, resetTime, totalTime);
+										else
+										{
+											restart(counter, resetTime, totalTime);
+											//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Paskutinis")));
+										}
 										
 									}
 								}
+								else GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Laiko permazai")));
 							}
 						}
 					}
@@ -274,7 +288,7 @@ bool FSpellDetector::DetectLightning(const TArray<FVector> &Positions, FVector &
 										{
 											restart(counter, resetTime, totalTime);
 
-											OuttriangleCenter = Mage->PlayerCamera->GetComponentLocation() + Mage->PlayerCamera->GetForwardVector() * 150.0F;
+											OuttriangleCenter = Mage->PlayerCamera->GetComponentLocation() + Mage->PlayerCamera->GetForwardVector() * 100.0F;
 											
 											GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("distanceToFirstPoint: %f, totalDistance: %f"), distanceToFirstPoint, totalDistance));
 											GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Veikia-------------")));
@@ -297,7 +311,35 @@ bool FSpellDetector::DetectLightning(const TArray<FVector> &Positions, FVector &
 	return false;
 }
 
-	bool FSpellDetector::DetectShallNotPass(const TArray<FVector>& Positions, FVector HeadLocation, float StaffHalfHeight)
+void FSpellDetector::DetectSlash(const TArray<FVector>& Positions, AMagePawn * Mage, FVector &vector1, FVector &vector2)
+{
+	Mage->PlayerCamera->GetForwardVector();
+	for (int i = 1; i < Positions.Num(); i++)
+	{
+			if(vector1 == FVector::ZeroVector)
+			vector1 = Positions[i] - Positions[i - 1];
+			else if (vector2 == FVector::ZeroVector)
+				vector2 = Positions[i] - Positions[i - 1];
+			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("X: %f, Y: %f"), abs(vector2.X - vector1.X), abs(vector2.Y - vector1.Y)));
+			if (vector1 != FVector::ZeroVector && vector2 != FVector::ZeroVector)
+			{
+				
+
+				if(abs(vector2.Y - vector1.Y) > 5 && abs(vector2.X - vector1.X) < 4 && abs(vector2.X - vector1.X) > 1 && abs(vector2.Z - vector1.Z) < 5)
+					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("SLASH")));
+				vector1 = FVector::ZeroVector;
+				vector2 = FVector::ZeroVector;
+			}
+			
+		
+	}
+}
+
+void FSpellDetector::DetectStab(const TArray<FVector>& Positions, AMagePawn * Mage, FVector & OutSlashVector1, FVector & OutSlashVector2)
+{
+}
+
+bool FSpellDetector::DetectShallNotPass(const TArray<FVector>& Positions, FVector HeadLocation, float StaffHalfHeight)
 {
 	float HeightThreshold = HeadLocation.Z + StaffHalfHeight;
 	float StaffHeight = 0.0F;
@@ -314,7 +356,7 @@ bool FSpellDetector::DetectLightning(const TArray<FVector> &Positions, FVector &
 	return StaffHeight >= HeightThreshold;
 }
 
-	void FSpellDetector::restart(int & counter, bool & resetTime, float & totalTime)
+void FSpellDetector::restart(int & counter, bool & resetTime, float & totalTime)
 	{
 		counter = 0;
 		resetTime = true;

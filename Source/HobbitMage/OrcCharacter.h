@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "OrcCharacter.generated.h"
 
+DECLARE_MULTICAST_DELEGATE(FOrcDiedDelegate);
+
 UCLASS()
 class HOBBITMAGE_API AOrcCharacter : public ACharacter
 {
@@ -21,7 +23,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Orc")
 	bool bWalkToTarget;
 
-	UPROPERTY(EditAnywhere, Category = "Orc")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Orc")
 	int orcHealth;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Orc")
@@ -56,6 +58,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Orc")
 	void DecreaseHealth();
 
-
+	FOrcDiedDelegate OnOrcDied;
 
 };

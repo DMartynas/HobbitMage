@@ -72,3 +72,11 @@ Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+Content/KiteDemo/*
+Content/Hand_Painted_Starter_Kit/*
+Content/InfinityBladeGrassLands/*
+Content/ModularCliffs/*
+Content/Content/ModularCliffs/*
+Content/ProceduralNaturePack/*
+Content/SoulCave/*
+Content/StarterContent/*

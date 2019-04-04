@@ -18,7 +18,7 @@ AOrcCharacter::AOrcCharacter(const FObjectInitializer &ObjInitializer)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	orcHealth = 100;
+	orcHealth = 200;
 	GetCapsuleComponent()->SetNotifyRigidBodyCollision(true);
 
 }
@@ -43,28 +43,23 @@ void AOrcCharacter::Tick(float DeltaTime)
 			AMagePawn* Pawn = Cast<AMagePawn>(PC->GetPawn());
 			if (Pawn)
 			{
-				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) > 300.f && Attack == false)
-				{
-					Controller->StopMovement();
-					Walk = true;
-					Controller->SetFocus(Pawn);
-					//Controller->MoveToLocation(Pawn->PlayerCamera->GetComponentLocation(), 100.0F);
-					Controller->MoveToActor(Pawn, 200);
-				}
-				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) < 300.f)
-				{
-					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Stopped")));
-					Controller->StopMovement();
-				}
-				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f"), FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation())));
-				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) < 300.f)
+				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) > 210.f && Attack == true) Attack = false;
+				//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f"), FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation())));
+				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) < 250.f)
 				{
 					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Boool")));
 					Controller->StopMovement();
 					Walk = false;
 					Attack = true;
 				}
-				else if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) > 400.f) Attack = false;
+				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) > 200.f && Attack == false && Walk == false)
+				{
+					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Walk")));
+					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f"), FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation())));
+					UE_LOG(LogTemp, Warning, TEXT("Distance: %f"), FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()));
+					Controller->StopMovement();
+					MoveToPlayer();
+				}
 			}
 		}
 	}
@@ -80,22 +75,24 @@ void AOrcCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 void AOrcCharacter::MoveToPlayer()
 {
-	/*if (bWalkToTarget)
+	//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Moving")));
+	AAIController* Controller = Cast<AAIController>(GetController());
+	if (Controller)
 	{
-		AAIController* Controller = Cast<AAIController>(GetController());
-		if (Controller)
+		APlayerController* PC = GetWorld()->GetFirstPlayerController();
+		if (PC)
 		{
-			APlayerController* PC = GetWorld()->GetFirstPlayerController();
-			if (PC)
+			AMagePawn* Pawn = Cast<AMagePawn>(PC->GetPawn());
+			if (Pawn)
 			{
-				AMagePawn* Pawn = Cast<AMagePawn>(PC->GetPawn());
-				if (Pawn)
-				{
-					
-				}
+				Controller->StopMovement();
+				Walk = true;
+				Controller->SetFocus(Pawn);
+				//Controller->MoveToLocation(Pawn->PlayerCamera->GetComponentLocation(), 100.0F);
+				Controller->MoveToActor(Pawn, 80);
 			}
 		}
-	}*/
+	}
 }
 
 void AOrcCharacter::KillOrc()
@@ -107,12 +104,12 @@ void AOrcCharacter::KillOrc()
 	{
 		GameMode->AddScore(10);
 	}
+	OnOrcDied.Broadcast();
 	OnOrcKilled();
 }
 void AOrcCharacter::DecreaseHealth()
 {
-	if (orcHealth <= 0) KillOrc();
-	else 
+	if (orcHealth > 0)
 	{
 		orcHealth -= meeleDamage;
 		if (orcHealth <= 0) KillOrc();

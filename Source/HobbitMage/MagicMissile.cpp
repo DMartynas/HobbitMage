@@ -42,6 +42,11 @@ void AMagicMissile::BeginPlay()
 	SphereCollision->OnComponentHit.AddDynamic(this, &AMagicMissile::SphereHit);
 }
 
+void AMagicMissile::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+}
+
 void AMagicMissile::BeginSphereOverlap(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
 	AOrcCharacter* Orc = Cast<AOrcCharacter>(OtherActor);
@@ -86,4 +91,10 @@ void AMagicMissile::SphereHit(UPrimitiveComponent * HitComponent, AActor * Other
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ExplosionSound, GetRootComponent()->GetComponentLocation());
 	}
 	Destroy();
+}
+
+void AMagicMissile::OrcDied()
+{
+	MovementComponent->bIsHomingProjectile = false;
+	MovementComponent->HomingTargetComponent = nullptr;
 }

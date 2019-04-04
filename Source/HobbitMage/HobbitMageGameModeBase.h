@@ -18,7 +18,7 @@ public:
 public:
 
 	UPROPERTY(EditAnywhere, Category = "Hobbit Mage")
-	float SpawnRate = 5.0F;
+	float SpawnRate = 10.0F;
 
 	UPROPERTY(EditAnywhere, Category = "Hobbit Mage")
 	float MinSpawnRate = 0.25F;
@@ -46,6 +46,8 @@ protected:
 	void BeginPlay();
 
 	void SpawnOrc();
+
+	void PostInitializeComponents();
 
 public:
 

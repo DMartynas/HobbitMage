@@ -2,6 +2,10 @@
 
 #include "SpellDetector.h"
 #include "MagePawn.h"
+#include "Engine/Classes/Kismet/KismetMathLibrary.h"
+#include <vector>
+#include <iostream>   
+#include <string>  
 #include "Engine.h"
 
 
@@ -63,7 +67,7 @@ bool FSpellDetector::DetectCircle(const TArray<FVector> &Positions, float Accept
 
 
 
-	OutAverageLoc = AverageLocation + Mage->PlayerCamera->GetForwardVector() * 10.0F;;
+	OutAverageLoc = AverageLocation + Mage->PlayerCamera->GetForwardVector() * 50.0F;;
 	system_clock::time_point timeStoped = system_clock::now();
 	std::chrono::duration<double> dur = timeStoped - timeStarted;
 	//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Time: %.9f"), dur.count()));
@@ -126,7 +130,7 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, FVector &O
 				
 					float angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(current, previous)));
 					//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Angle: %f"), angle));
-					if (angle > 20.f && angle < 90.f)
+					if (angle > 10.f && angle < 100.f)
 					{
 						if (pos1 == FVector::ZeroVector)
 						{
@@ -171,7 +175,7 @@ bool FSpellDetector::DetectTriangle(const TArray<FVector> &Positions, FVector &O
 
 											OutTriangleCenter = Mage->PlayerCamera->GetComponentLocation() + Mage->PlayerCamera->GetForwardVector() * 100.0F;
 											
-											GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("distanceToFirstPoint: %f, totalDistance: %f"), distanceToFirstPoint, totalDistance));
+											//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("distanceToFirstPoint: %f, totalDistance: %f"), distanceToFirstPoint, totalDistance));
 											return true;
 										}
 										else
@@ -251,7 +255,7 @@ bool FSpellDetector::DetectLightning(const TArray<FVector> &Positions, FVector &
 				
 					float angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(current, previous)));
 					//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Angle: %f"), angle));
-					if (angle > 30.f && angle < 90.f)
+					if (angle > 10.f && angle < 100.f)
 					{
 						if (pos1 == FVector::ZeroVector)
 						{
@@ -311,28 +315,50 @@ bool FSpellDetector::DetectLightning(const TArray<FVector> &Positions, FVector &
 	return false;
 }
 
-void FSpellDetector::DetectSlash(const TArray<FVector>& Positions, AMagePawn * Mage, FVector &vector1, FVector &vector2)
+int FSpellDetector::DetectSlashOrStab(const TArray<FVector>& Positions, AMagePawn * Mage, FVector &vector1, FVector &vector2)
 {
+	FVector point1;
+	FVector point2;
 	Mage->PlayerCamera->GetForwardVector();
+	
 	for (int i = 1; i < Positions.Num(); i++)
 	{
-			if(vector1 == FVector::ZeroVector)
-			vector1 = Positions[i] - Positions[i - 1];
+		if (i == Positions.Num() - 2)
+		{
+			point1 = UKismetMathLibrary::ProjectPointOnToPlane(Positions[i], Mage->PlayerCamera->GetComponentLocation(), Mage->PlayerCamera->GetForwardVector());
+			point2 = UKismetMathLibrary::ProjectPointOnToPlane(Positions[i + 1], Mage->PlayerCamera->GetComponentLocation(), Mage->PlayerCamera->GetForwardVector());
+			//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("X: %f, Y: %f, Z: %f"), point1.X, point1.Y, point1.Z));
+			if (vector1 == FVector::ZeroVector)
+				vector1 = point1 - point2;
 			else if (vector2 == FVector::ZeroVector)
-				vector2 = Positions[i] - Positions[i - 1];
-			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("X: %f, Y: %f"), abs(vector2.X - vector1.X), abs(vector2.Y - vector1.Y)));
+				vector2 = point1 - point2;
+			
+			Mage->debugMessage = "X: " + FString::SanitizeFloat(abs(vector2.X - vector1.X)) + " Y: " + FString::SanitizeFloat(abs(vector2.Y - vector1.Y)) + " Z: " + FString::SanitizeFloat(abs(vector2.Z - vector1.Z));
+			//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("%s"), *(Mage->debugMessage)));
 			if (vector1 != FVector::ZeroVector && vector2 != FVector::ZeroVector)
 			{
-				
-
-				if(abs(vector2.Y - vector1.Y) > 5 && abs(vector2.X - vector1.X) < 4 && abs(vector2.X - vector1.X) > 1 && abs(vector2.Z - vector1.Z) < 5)
-					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("SLASH")));
+				if (abs(vector2.X - vector1.X) > 5 /*&& abs(vector2.Y - vector1.Y) < 10 && abs(vector2.Z - vector1.Z) < 2*/)
+				{
+					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("------------------SLASH---------------------")));
+					vector1 = FVector::ZeroVector;
+					vector2 = FVector::ZeroVector;
+					return 1;
+				}
+				else if (abs(vector2.Z - vector1.Z) > 7)
+				{
+					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("------------------BASH---------------------")));
+					vector1 = FVector::ZeroVector;
+					vector2 = FVector::ZeroVector;
+					return 2;
+				}
 				vector1 = FVector::ZeroVector;
 				vector2 = FVector::ZeroVector;
+				
 			}
-			
-		
+
+		}  
 	}
+	return 0;
 }
 
 void FSpellDetector::DetectStab(const TArray<FVector>& Positions, AMagePawn * Mage, FVector & OutSlashVector1, FVector & OutSlashVector2)

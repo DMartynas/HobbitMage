@@ -19,6 +19,9 @@ public:
 	// Sets default values for this pawn's properties
 	AMagePawn(const FObjectInitializer &ObjInitializer);
 
+	UFUNCTION()
+		void onTimerEnd();
+
 public:
 
 	UPROPERTY(VisibleAnywhere, Category = "Mage")
@@ -68,6 +71,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Mage | SpellCast Detection | Triangle")
 	float TriangleAcceptanceChance;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Mage")
+	FString debugMessage;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Mage")
+	bool changeWeaponToSword;
 
 	int AngleCounter;
 	bool resetTime;

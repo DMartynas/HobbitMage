@@ -56,7 +56,7 @@ void AFireSpellCast::CastSpell(AMagePawn* Mage, const FHitResult &HitResult)
 								MaxProduct = DotProduct;
 								BestFitOrc = Orc;
 								MagicMissileDirection = StaffVelDir + DirToOrc;
-								
+								Orc->OnOrcDied.AddUFunction(Missile, FName("OrcDied"));
 
 							}
 							

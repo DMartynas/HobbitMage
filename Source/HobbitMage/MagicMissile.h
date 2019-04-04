@@ -38,6 +38,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	void Tick(float DeltaTime);
 
 public:	
 
@@ -47,4 +48,6 @@ public:
 	UFUNCTION()
 	void SphereHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
+	UFUNCTION()
+	virtual void OrcDied();
 };

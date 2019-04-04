@@ -17,6 +17,12 @@ void AHobbitMageGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+
+}
+
+void AHobbitMageGameModeBase::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
 	for (TActorIterator<AOrcSpawnVolume> Itr(GetWorld()); Itr; ++Itr)
 	{
 		SpawnVolumes.Add(*Itr);

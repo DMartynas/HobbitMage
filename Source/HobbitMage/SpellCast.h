@@ -17,7 +17,7 @@ public:
 
 public:
 
-	UPROPERTY(VisibleAnywhere, Category = "Spell Cast")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Spell Cast")
 	class USphereComponent* OverlapSphere;
 
 	UPROPERTY(VisibleAnywhere, Category = "Spell Cast")

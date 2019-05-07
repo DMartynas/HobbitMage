@@ -11,6 +11,7 @@
 #include "SpellDetector.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "SpellCast.h"
+#include <algorithm>
 #include "SpellDetector.h"
 #include "Components/AudioComponent.h"
 #include "Engine.h"
@@ -58,11 +59,12 @@ AMagePawn::AMagePawn(const FObjectInitializer &ObjInitializer)
 	bReadyToCast = true;
 	bCastingShallNotPass = false;
 
-	MaxBufferedPositions = 33;
+	MaxBufferedPositions = 19;
 	PositionRegisteringRate = 1.0F / 15.0F;
 
 	CircleAcceptanceChance = 0.8F;
 	RadiusVariation = 0.2F;
+	IsCircle = false;
 
 	StaffVelocityBufferSize = 8;
 	CurrentVelocityBufferIndex = 0;
@@ -79,7 +81,7 @@ AMagePawn::AMagePawn(const FObjectInitializer &ObjInitializer)
 
 	OutslashVector1 = FVector::ZeroVector;
 	OutslashVector2 = FVector::ZeroVector;
-	
+	FVector circlePos = FVector::ZeroVector;
 }
 
 // Called when the game starts or when spawned
@@ -96,118 +98,190 @@ void AMagePawn::BeginPlay()
 
 void AMagePawn::RegisterPoint()
 {
-	
-	FVector NewPosition = StaffController->GetComponentLocation();
-	if (BufferedPositions.Num() == MaxBufferedPositions)
+	if (!spellCasted)
 	{
-		BufferedPositions.RemoveAt(0);
+		FVector NewPosition = StaffController->GetComponentLocation();
+		if (BufferedPositions.Num() == MaxBufferedPositions)
+		{
+			BufferedPositions.RemoveAt(0);
+		}
+		if (BufferedPositions.Num() > 0)
+			if(FVector2D::Distance(FVector2D(BufferedPositions[BufferedPositions.Num() - 1].X, BufferedPositions[BufferedPositions.Num() - 1].Z), FVector2D(NewPosition.X, NewPosition.Z)) > 2.f)
+				BufferedPositions.Add(NewPosition);
+		if(BufferedPositions.Num() < 1)
+			BufferedPositions.Add(NewPosition);
+		DetectSpell();
 	}
-	BufferedPositions.Add(NewPosition);
+}
 
+void AMagePawn::DetectSpell()
+{
 	UWorld* World = GetWorld();
 	if (World)
 	{
 		FTimerHandle handle;
-		FVector CirclePosition;
-		FVector TrianglePosition;
+
 		float CircleRadius = 0.0F;
-		if (!spellCasted)
+		//FVector* first;
+		//FVector* second;
+		//FSpellDetector::DynamicTimeWarping();
+		//debugMessage = GetWorld()->GetMapName();
+		if ("UEDPIE_0_MountaiMap" == GetWorld()->GetMapName())
 		{
-			if ("UEDPIE_0_DetailMap" != GetWorld()->GetMapName())
+			int attackType = FSpellDetector::DetectSlashOrStab(BufferedPositions, this, OutslashVector1, OutslashVector2);
+			if (attackType == 1)
+				changeWeaponToHammer  = true;
+			else if (attackType == 2)
+				changeWeaponToSword = true;
+		}
+		else if ("UEDPIE_0_DetailMap" == GetWorld()->GetMapName())
+		{
+			//FSpellDetector::RecordMovement(BufferedPositions, this, OutslashVector1, OutslashVector2);
+			if (FSpellDetector::DetectCircle(BufferedPositions, CircleAcceptanceChance, RadiusVariation, CirclePosition, CircleRadius, this))
 			{
-				int attackType = FSpellDetector::DetectSlashOrStab(BufferedPositions, this, OutslashVector1, OutslashVector2);
-				if (attackType == 1)
-					changeWeaponToSword = true;
-				else if (attackType == 2)
-					GetWorld()->GetTimerManager().SetTimer(handle, this, &AMagePawn::onTimerEnd, 1.f);
+				BufferedPositions.Empty();
+				IsCircle = false;
+				spellCasted = true;
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("--------------------CIRCLE")));
+				resetTime = true;
+				AngleCounter = 0;
+				UnreadySpellCast();
+				World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
+				FTransform SpawnTransform;
+				SpawnTransform.SetLocation(this->PlayerCamera->GetComponentLocation() + this->PlayerCamera->GetForwardVector() * 100);
+				SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
+				ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
+				if (Cast)
+				{
+					Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
+					BufferedPositions.Empty();
+				}
 			}
+			else if (FSpellDetector::DetectTriangle(BufferedPositions, TrianglePosition, AngleCounter, resetTime, timeStarted, this))
+			{
+				BufferedPositions.Empty();
+				spellCasted = true;
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("--------------------Triangle")));
+				UnreadySpellCast();
+				World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
+				FTransform SpawnTransform;
+
+				SpawnTransform.SetLocation(this->PlayerCamera->GetComponentLocation() + this->PlayerCamera->GetForwardVector() * 100);
+				SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
+				ASpellCast* Cast = World->SpawnActor<ASpellCast>(TriangleSpellCastClass, SpawnTransform);
+				if (Cast)
+				{
+					Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
+
+				}
+			}
+
+			/*else if (FSpellDetector::DetectLightning(BufferedPositions, TrianglePosition, AngleCounter, resetTime, timeStarted, this))
+			{
+				spellCasted = true;
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Blue, FString::Printf(TEXT("--------------------LIGHTNING")));
+				UnreadySpellCast();
+				World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
+				FTransform SpawnTransform;
+
+				SpawnTransform.SetLocation(CirclePosition);
+				SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
+				ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
+				if (Cast)
+				{
+					Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
+				}
+			}*/
+
+			/*else if (FSpellDetector::DetectTriangle(BufferedPositions, TrianglePosition, AngleCounter, resetTime, timeStarted, this))
+			{
+				spellCasted = true;
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("--------------------Triangle")));
+				UnreadySpellCast();
+				World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
+				FTransform SpawnTransform;
+				//TrianglePosition -= AMagePawn::PlayerCamera->GetForwardVector();
+
+				SpawnTransform.SetLocation(TrianglePosition);
+				SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
+				AMagicBeing* Cast = World->SpawnActor<AMagicBeing>(MagicBeingSpellCastClass, SpawnTransform);
+
+				if (Cast)
+				{
+
+					//Cast->
+					//Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
+				}
+			}*/
+
 			else
 			{
-				if (FSpellDetector::DetectCircle(BufferedPositions, CircleAcceptanceChance, RadiusVariation, CirclePosition, CircleRadius, this))
+				AHobbitMageGameModeBase* GameMode = Cast<AHobbitMageGameModeBase>(GetWorld()->GetAuthGameMode());
+				if (GameMode)
 				{
-					spellCasted = true;
-					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("--------------------CIRCLE")));
-					resetTime = true;
-					AngleCounter = 0;
-					UnreadySpellCast();
-					World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
-					FTransform SpawnTransform;
-					SpawnTransform.SetLocation(CirclePosition);
-					SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
-					ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
-					if (Cast)
+					if (FSpellDetector::DetectShallNotPass(BufferedPositions, PlayerCamera->GetComponentLocation(), 86.0F) && !GameMode->bShallNotPassUsed)
 					{
-						Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
-					}
-				}
-				else if (FSpellDetector::DetectLightning(BufferedPositions, TrianglePosition, AngleCounter, resetTime, timeStarted, this))
-				{
-					spellCasted = true;
-					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Blue, FString::Printf(TEXT("--------------------LIGHTNING")));
-					UnreadySpellCast();
-					World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
-					FTransform SpawnTransform;
-
-					SpawnTransform.SetLocation(CirclePosition);
-					SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
-					ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
-					if (Cast)
-					{
-						Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
-					}
-				}
-				else if (FSpellDetector::DetectTriangle(BufferedPositions, TrianglePosition, AngleCounter, resetTime, timeStarted, this))
-				{
-					spellCasted = true;
-					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("--------------------Triangle")));
-					UnreadySpellCast();
-					World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
-					FTransform SpawnTransform;
-
-					SpawnTransform.SetLocation(CirclePosition);
-					SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
-					ASpellCast* Cast = World->SpawnActor<ASpellCast>(CircleSpellCastClass, SpawnTransform);
-					if (Cast)
-					{
-						Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
-					}
-				}
-				/*else if (FSpellDetector::DetectTriangle(BufferedPositions, TrianglePosition, AngleCounter, resetTime, timeStarted, this))
-				{
-					spellCasted = true;
-					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("--------------------Triangle")));
-					UnreadySpellCast();
-					World->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AMagePawn::SpellCastReady, SpellCastCooldown);
-					FTransform SpawnTransform;
-					//TrianglePosition -= AMagePawn::PlayerCamera->GetForwardVector();
-
-					SpawnTransform.SetLocation(TrianglePosition);
-					SpawnTransform.SetRotation(PlayerCamera->GetComponentQuat());
-					AMagicBeing* Cast = World->SpawnActor<AMagicBeing>(MagicBeingSpellCastClass, SpawnTransform);
-
-					if (Cast)
-					{
-
-						//Cast->
-						//Cast->SpellCastParticles->SetFloatParameter("CircleRadius", CircleRadius);
-					}
-				}*/
-
-				else
-				{
-					AHobbitMageGameModeBase* GameMode = Cast<AHobbitMageGameModeBase>(GetWorld()->GetAuthGameMode());
-					if (GameMode)
-					{
-						if (FSpellDetector::DetectShallNotPass(BufferedPositions, PlayerCamera->GetComponentLocation(), 86.0F) && !GameMode->bShallNotPassUsed)
-						{
-							UnreadySpellCast();
-							ShallNotPassParticle->Activate();
-							bCastingShallNotPass = true;
-							YouShallNot->Play();
-						}
+						UnreadySpellCast();
+						ShallNotPassParticle->Activate();
+						bCastingShallNotPass = true;
+						YouShallNot->Play();
 					}
 				}
 			}
+		}
+	}
+}
+
+TArray<FVector2D> AMagePawn::ReadFromFile(FString FileName)
+{
+	FString SaveDirectory = FString("C:/Users/VR-Lab-06/Desktop");
+	bool AllowOverwriting = true;
+	FString TextToRead = "";
+	TArray<FVector2D> output;
+	TArray<FString> vectors;
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	float X = -999999.f;
+	float Y = -999999.f;
+	float Z = -999999.f;
+	// CreateDirectoryTree returns true if the destination
+	// directory existed prior to call or has been created
+	// during the call.
+	
+		// Get absolute file path
+		FString AbsoluteFilePath = SaveDirectory + "/" + FileName;
+
+		// Allow overwriting or file doesn't already exist
+		if (AllowOverwriting)
+		{
+
+			FFileHelper::LoadFileToString(TextToRead, *AbsoluteFilePath);
+		}
+		output = AMagePawn::callFunction(TextToRead);
+
+
+	return output;
+}
+
+void AMagePawn::writeToFile(FString TextToSave, FString FileName)
+{
+	FString SaveDirectory = FString("C:/Users/VR-Lab-06/Desktop");
+	bool AllowOverwriting = true;
+
+
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	// CreateDirectoryTree returns true if the destination
+	// directory existed prior to call or has been created
+	// during the call.
+	if (PlatformFile.CreateDirectoryTree(*SaveDirectory))
+	{
+		// Get absolute file path
+		FString AbsoluteFilePath = SaveDirectory + "/" + FileName;
+
+		// Allow overwriting or file doesn't already exist
+		if (AllowOverwriting)
+		{
+			FFileHelper::SaveStringToFile(TextToSave, *AbsoluteFilePath);
 		}
 	}
 }

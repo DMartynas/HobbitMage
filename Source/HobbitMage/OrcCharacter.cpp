@@ -18,7 +18,7 @@ AOrcCharacter::AOrcCharacter(const FObjectInitializer &ObjInitializer)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	orcHealth = 200;
+	orcHealth = 199;
 	GetCapsuleComponent()->SetNotifyRigidBodyCollision(true);
 
 }
@@ -43,19 +43,19 @@ void AOrcCharacter::Tick(float DeltaTime)
 			AMagePawn* Pawn = Cast<AMagePawn>(PC->GetPawn());
 			if (Pawn)
 			{
-				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) > 210.f && Attack == true) Attack = false;
+				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) > 180.f && Attack == true) Attack = false;
 				//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f"), FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation())));
-				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) < 250.f)
+				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) < 180.f)
 				{
-					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Boool")));
+					//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Boool")));
 					Controller->StopMovement();
 					Walk = false;
 					Attack = true;
 				}
-				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) > 200.f && Attack == false && Walk == false)
+				if (FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()) > 180.f && Attack == false && Walk == false)
 				{
-					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Walk")));
-					GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f"), FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation())));
+					//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Walk")));
+					//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("Distance: %f"), FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation())));
 					UE_LOG(LogTemp, Warning, TEXT("Distance: %f"), FVector::Distance(Controller->GetPawn()->GetActorLocation(), Pawn->PlayerCamera->GetComponentLocation()));
 					Controller->StopMovement();
 					MoveToPlayer();
@@ -87,9 +87,9 @@ void AOrcCharacter::MoveToPlayer()
 			{
 				Controller->StopMovement();
 				Walk = true;
-				Controller->SetFocus(Pawn);
+				Controller->SetFocus(PC->PlayerCameraManager);
 				//Controller->MoveToLocation(Pawn->PlayerCamera->GetComponentLocation(), 100.0F);
-				Controller->MoveToActor(Pawn, 80);
+				Controller->MoveToLocation(Pawn->PlayerCamera->GetComponentLocation(), 50);
 			}
 		}
 	}

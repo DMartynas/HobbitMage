@@ -22,6 +22,16 @@ public:
 	UFUNCTION()
 		void onTimerEnd();
 
+	UFUNCTION(BlueprintImplementableEvent)
+		TArray<FVector2D> callFunction(const FString& input);
+
+	UFUNCTION(BlueprintCallable)
+		void writeToFile(FString TextToSave, FString FileName);
+
+	UFUNCTION(BlueprintCallable)
+		TArray<FVector2D> ReadFromFile(FString FileName);
+
+	
 public:
 
 	UPROPERTY(VisibleAnywhere, Category = "Mage")
@@ -33,8 +43,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mage")
 	class UStaticMeshComponent* StaffMesh;
 
-	UPROPERTY(VisibleAnywhere, Category = "Mage")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mage")
 	class UCameraComponent* PlayerCamera;
+
+
 
 	UPROPERTY(VisibleAnywhere, Category = "Mage")
 	class UParticleSystemComponent* TrailParticle;
@@ -54,8 +66,14 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Mage | SpellCasts")
 	float SpellCastCooldown;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Mage")
+	bool IsCircle;
+
 	UPROPERTY(EditAnywhere, Category = "Mage | SpellCasts")
 	TSubclassOf<class ASpellCast> CircleSpellCastClass;
+
+	UPROPERTY(EditAnywhere, Category = "Mage | SpellCasts")
+	TSubclassOf<class ASpellCast> TriangleSpellCastClass;
 
 	UPROPERTY(EditAnywhere, Category = "Mage | SpellCasts")
 	TSubclassOf<class AMagicBeing> MagicBeingSpellCastClass;
@@ -78,8 +96,19 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Mage")
 	bool changeWeaponToSword;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Mage")
+	bool callDetectCircleFunc = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Mage")
+	bool changeWeaponToHammer;
+
 	int AngleCounter;
 	bool resetTime;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Mage")
+	FVector CirclePosition;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Mage")
+	FVector TrianglePosition;
 
 	system_clock::time_point timeStarted;
 
@@ -95,7 +124,7 @@ public:
 	bool spellCasted;
 
 protected:
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mage")
 	TArray<FVector> BufferedPositions;
 
 	TArray<FVector> StaffVelocityBuffer;
@@ -120,7 +149,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	void RegisterPoint();
-
+	void DetectSpell();
 	void UnreadySpellCast();
 	void SpellCastReady();
 
